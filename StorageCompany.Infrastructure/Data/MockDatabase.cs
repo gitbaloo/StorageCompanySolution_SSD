@@ -1,11 +1,22 @@
 using StorageCompany.Core.Entities;
 using StorageCompany.Core.Enums;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace StorageCompany.Infrastructure.Data;
 
 public static class MockDatabase
 {
     public static readonly object SyncRoot = new();
+
+    private static string HashPassword(string password)
+    {
+        using var sha512 = SHA512.Create();
+        var bytes = Encoding.UTF8.GetBytes(password);
+        var hash = sha512.ComputeHash(bytes);
+        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+    }
+
 
     public static class Ids
     {
@@ -44,7 +55,8 @@ public static class MockDatabase
             LastName = "Jensen",
             Email = "anna@example.com",
             PhoneNumber = "+45 12 34 56 78",
-            PasswordHash = "MOCK_HASH_SEEDED",
+            PasswordSalt = string.Empty,
+            PasswordHash = HashPassword("Customer123!"),
             Role = Constants.CustomerRole,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-30)
@@ -56,7 +68,8 @@ public static class MockDatabase
             LastName = "Nielsen",
             Email = "peter@example.com",
             PhoneNumber = "+45 87 65 43 21",
-            PasswordHash = "MOCK_HASH_SEEDED",
+            PasswordSalt = string.Empty,
+            PasswordHash = HashPassword("Admin123!"),
             Role = Constants.AdminRole,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-12)
