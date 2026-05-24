@@ -1,6 +1,7 @@
-using System.Net;
 using StorageCompany.Api.Responses;
 using StorageCompany.Core.Exceptions;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 namespace StorageCompany.Api.Middleware;
 
@@ -26,6 +27,10 @@ public class ErrorHandlingMiddleware
             await WriteErrorAsync(context, HttpStatusCode.NotFound, exception.Message);
         }
         catch (BusinessRuleException exception)
+        {
+            await WriteErrorAsync(context, HttpStatusCode.BadRequest, exception.Message);
+        }
+        catch (ValidationException exception)
         {
             await WriteErrorAsync(context, HttpStatusCode.BadRequest, exception.Message);
         }
