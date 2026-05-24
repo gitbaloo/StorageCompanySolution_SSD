@@ -1,6 +1,4 @@
 using System.Text.Json.Serialization;
-using NSwag;
-using NSwag.Generation.Processors.Security;
 using Scalar.AspNetCore;
 using StorageCompany.Api.Middleware;
 using StorageCompany.Core;
@@ -70,6 +68,7 @@ public class Program
         builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
         builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
         builder.Services.AddScoped<ISecurityService, SecurityService>();
+        builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 
         var app = builder.Build();
 
