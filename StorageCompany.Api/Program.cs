@@ -23,7 +23,11 @@ public class Program
             .Bind(builder.Configuration.GetSection("AppOptions"))
             .ValidateDataAnnotations()
             .Validate(options => !string.IsNullOrWhiteSpace(options.JwtSecret), "JwtSecret is required")
+            .Validate(options => options.JwtSecret.Length >= 32, "JwtSecret must be at least 32 characters")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.RequestSigningSecret), "RequestSigningSecret is required")
+            .Validate(options => options.RequestSigningSecret.Length >= 32, "RequestSigningSecret must be at least 32 characters")
             .ValidateOnStart();
+
 
         builder.Services
             .AddControllers()
@@ -31,6 +35,8 @@ public class Program
             {
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
+
+        builder.Services.AddMemoryCache();
 
         builder.Services.AddEndpointsApiExplorer();
 
@@ -77,6 +83,8 @@ public class Program
 
         app.UseHttpsRedirection();
         app.UseCors("DevelopmentCors");
+        app.UseMiddleware<HmacRequestSigningMiddleware>();
+        app.MapControllers();
         app.MapControllers();
 
        

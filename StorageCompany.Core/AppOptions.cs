@@ -2,7 +2,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace StorageCompany.Core;
 
-public sealed class AppOptions
+public class AppOptions
 {
-    [Required] public string JwtSecret { get; set; } = string.Empty;
+    [Required]
+    [MinLength(32)]
+    public string JwtSecret { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(32)]
+    public string RequestSigningSecret { get; set; } = string.Empty;
 }
