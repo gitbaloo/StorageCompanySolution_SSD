@@ -55,8 +55,7 @@ public static class MockDatabase
             LastName = "Jensen",
             Email = "anna@example.com",
             PhoneNumber = "+45 12 34 56 78",
-            PasswordSalt = string.Empty,
-            PasswordHash = HashPassword("Customer123!"),
+            PasswordHash = "Hg0mokcQLlqY2fb41nKuUtom5c8Fj2ESfCqShtvS7XrgXrC1+kP+wmeef27RfUSi", // Customer123!
             Role = Constants.CustomerRole,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-30)
@@ -68,8 +67,7 @@ public static class MockDatabase
             LastName = "Nielsen",
             Email = "peter@example.com",
             PhoneNumber = "+45 87 65 43 21",
-            PasswordSalt = string.Empty,
-            PasswordHash = HashPassword("Admin123!"),
+            PasswordHash = "4/x+VBQfO1jEqOG10mga0DSqmPMNhzGCtZ6mgP7iTPjELx7TErDfuUoC6Gc42d4k", // Admin123!
             Role = Constants.AdminRole,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-12)
