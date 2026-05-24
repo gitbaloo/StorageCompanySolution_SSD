@@ -11,6 +11,7 @@ using StorageCompany.Core.Entities;
 using StorageCompany.Core.Enums;
 using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Interfaces.Services;
+using StorageCompany.Core.Validators;
 
 namespace StorageCompany.Core.Services;
 
@@ -41,7 +42,9 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
         if (user is not null) {
             throw new ValidationException("User already Exists");
         }
-        
+
+        PasswordPolicyValidator.Validate(dto.Password, dto.Role);
+
         var salt  = GenerateSalt();
         var hash = HashPassword(dto.Password + salt);
         var role = dto.Role == "admin" ? Constants.AdminRole : Constants.CustomerRole;
