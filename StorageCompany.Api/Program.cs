@@ -6,6 +6,8 @@ using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Interfaces.Services;
 using StorageCompany.Core.Services;
 using StorageCompany.Infrastructure.Repositories;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using StorageCompany.Infrastructure.Data;
 
 
@@ -71,6 +73,47 @@ public class Program
         builder.Services.AddScoped<ISecurityService, SecurityService>();
         builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddPolicy("AuthPolicy", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: GetAuthRateLimitKey(httpContext),
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+
+            options.AddPolicy("GlobalApiPolicy", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: GetClientIp(httpContext),
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+        });
+
+        static string GetAuthRateLimitKey(HttpContext context)
+        {
+            var ip = GetClientIp(context);
+
+            return $"auth:{ip}";
+        }
+
+        static string GetClientIp(HttpContext context)
+        {
+            return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        }
+
         var app = builder.Build();
 
         using (var scope = app.Services.CreateScope())
@@ -83,9 +126,12 @@ public class Program
 
         app.UseHttpsRedirection();
         app.UseCors("DevelopmentCors");
-        app.MapControllers();
+        app.UseRateLimiter();
 
-       
+        app.MapControllers()
+           .RequireRateLimiting("GlobalApiPolicy");
+
+
         app.UseOpenApi(conf =>
         {
             conf.Path = "openapi/v1.json";
