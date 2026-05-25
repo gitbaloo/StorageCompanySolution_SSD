@@ -18,11 +18,11 @@ namespace StorageCompany.Core.Services;
 public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRepository repository) : ISecurityService
 {
     // Argon2 configurations
-    private const int SaltSize = 16;
-    private const int HashSize = 32;
-    private const int Parallelism = 1;
-    private const int Iterations = 2;
-    private const int MemorySize = 19456;
+    private const int SaltSize = 16; // 16 Bytes
+    private const int HashSize = 32; // 32 Bytes
+    private const int Parallelism = 1; // CPU threads
+    private const int Iterations = 2; // Number of hash iterations
+    private const int MemorySize = 19456; // Kilobytes ~19 MB of Ram cost 
         
     public async Task<AuthResponse> Login(AuthLoginRequest dto)
     {
@@ -73,11 +73,15 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
         };
     }
     
+  
+    // Hashes a plain-text password using Argon2id and returns a Base64 string
     public string HashPassword(string password)
     {
+        
         var salt = GenerateSalt();
         var passwordBytes = Encoding.UTF8.GetBytes(password);
 
+        // Configure Argon2id with the given parameters
         var argon = new Argon2id(passwordBytes)
         {
             Salt = salt,
@@ -88,6 +92,7 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
         
         var hash = argon.GetBytes(HashSize);
 
+        // Combines Salt + Hash into a single byte array
         var combined = new byte[SaltSize + HashSize];
         Buffer.BlockCopy(salt, 0, combined, 0, SaltSize);
         Buffer.BlockCopy(hash, 0, combined, SaltSize, HashSize);
@@ -95,6 +100,7 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
         return Convert.ToBase64String(combined);
     }
 
+    // Verifies a plain-text password against a stored one
     public void VerifyPasswordOrThrow(string password, string hashedPassword)
     {
         var combinedBytes = Convert.FromBase64String(hashedPassword);
@@ -120,7 +126,8 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
             throw new AuthenticationException("Invalid Password");
         }
     }
-
+    
+     // Generates a random number with the given size and used as a Salt
     public byte[] GenerateSalt()
     {
         return RandomNumberGenerator.GetBytes(SaltSize);
