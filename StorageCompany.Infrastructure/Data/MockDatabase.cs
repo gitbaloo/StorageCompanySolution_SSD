@@ -9,15 +9,6 @@ public static class MockDatabase
 {
     public static readonly object SyncRoot = new();
 
-    private static string HashPassword(string password)
-    {
-        using var sha512 = SHA512.Create();
-        var bytes = Encoding.UTF8.GetBytes(password);
-        var hash = sha512.ComputeHash(bytes);
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-    }
-
-
     public static class Ids
     {
         public static readonly Guid UserAnna = Guid.Parse("10000000-0000-0000-0000-000000000001");
