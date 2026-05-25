@@ -9,15 +9,6 @@ public static class MockDatabase
 {
     public static readonly object SyncRoot = new();
 
-    private static string HashPassword(string password)
-    {
-        using var sha512 = SHA512.Create();
-        var bytes = Encoding.UTF8.GetBytes(password);
-        var hash = sha512.ComputeHash(bytes);
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-    }
-
-
     public static class Ids
     {
         public static readonly Guid UserAnna = Guid.Parse("10000000-0000-0000-0000-000000000001");
@@ -46,36 +37,10 @@ public static class MockDatabase
         public static readonly Guid ExistingSupportRequest = Guid.Parse("90000000-0000-0000-0000-000000000001");
     }
 
-    public static List<User> Users { get; } = new()
-    {
-        new User
-        {
-            Id = Ids.UserAnna,
-            FirstName = "Anna",
-            LastName = "Jensen",
-            Email = "anna@example.com",
-            PhoneNumber = "+45 12 34 56 78",
-            PasswordHash = "Hg0mokcQLlqY2fb41nKuUtom5c8Fj2ESfCqShtvS7XrgXrC1+kP+wmeef27RfUSi", // Customer123!
-            Role = Constants.CustomerRole,
-            IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-30)
-        },
-        new User
-        {
-            Id = Ids.UserPeter,
-            FirstName = "Peter",
-            LastName = "Nielsen",
-            Email = "peter@example.com",
-            PhoneNumber = "+45 87 65 43 21",
-            PasswordHash = "4/x+VBQfO1jEqOG10mga0DSqmPMNhzGCtZ6mgP7iTPjELx7TErDfuUoC6Gc42d4k", // Admin123!
-            Role = Constants.AdminRole,
-            IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-12)
-        }
-    };
+    public static List<User> Users { get; } = [];
 
-    public static List<Facility> Facilities { get; } = new()
-    {
+    public static List<Facility> Facilities { get; } =
+    [
         new Facility
         {
             Id = Ids.FacilityCopenhagen,
@@ -127,10 +92,10 @@ public static class MockDatabase
             HasCCTV = true,
             CreatedAtUtc = DateTime.UtcNow.AddMonths(-2)
         }
-    };
+    ];
 
-    public static List<StorageUnitType> StorageUnitTypes { get; } = new()
-    {
+    public static List<StorageUnitType> StorageUnitTypes { get; } =
+    [
         new StorageUnitType
         {
             Id = Ids.UnitTypeSmall,
@@ -167,22 +132,22 @@ public static class MockDatabase
             RecommendedFor = "Small business inventory",
             CreatedAtUtc = DateTime.UtcNow.AddMonths(-6)
         }
-    };
+    ];
 
-    public static List<StorageUnit> StorageUnits { get; } = new()
-    {
+    public static List<StorageUnit> StorageUnits { get; } =
+    [
         new StorageUnit { Id = Ids.UnitCphSmall, FacilityId = Ids.FacilityCopenhagen, UnitTypeId = Ids.UnitTypeSmall, UnitNumber = "CPH-A101", Floor = 0, MonthlyPrice = 349m, Status = StorageUnitStatus.Available, IsClimateControlled = false, IsDriveUp = true, CreatedAtUtc = DateTime.UtcNow.AddMonths(-5) },
         new StorageUnit { Id = Ids.UnitCphMedium, FacilityId = Ids.FacilityCopenhagen, UnitTypeId = Ids.UnitTypeMedium, UnitNumber = "CPH-B203", Floor = 1, MonthlyPrice = 699m, Status = StorageUnitStatus.Rented, IsClimateControlled = true, IsDriveUp = false, CreatedAtUtc = DateTime.UtcNow.AddMonths(-5) },
         new StorageUnit { Id = Ids.UnitCphLarge, FacilityId = Ids.FacilityCopenhagen, UnitTypeId = Ids.UnitTypeLarge, UnitNumber = "CPH-C010", Floor = 0, MonthlyPrice = 1199m, Status = StorageUnitStatus.Available, IsClimateControlled = true, IsDriveUp = true, CreatedAtUtc = DateTime.UtcNow.AddMonths(-5) },
         new StorageUnit { Id = Ids.UnitAarhusSmall, FacilityId = Ids.FacilityAarhus, UnitTypeId = Ids.UnitTypeSmall, UnitNumber = "AAR-A014", Floor = 0, MonthlyPrice = 299m, Status = StorageUnitStatus.Available, IsClimateControlled = false, IsDriveUp = true, CreatedAtUtc = DateTime.UtcNow.AddMonths(-3) },
         new StorageUnit { Id = Ids.UnitAarhusBusiness, FacilityId = Ids.FacilityAarhus, UnitTypeId = Ids.UnitTypeBusiness, UnitNumber = "AAR-D001", Floor = 0, MonthlyPrice = 1699m, Status = StorageUnitStatus.Available, IsClimateControlled = true, IsDriveUp = true, CreatedAtUtc = DateTime.UtcNow.AddMonths(-3) },
         new StorageUnit { Id = Ids.UnitOdenseMedium, FacilityId = Ids.FacilityOdense, UnitTypeId = Ids.UnitTypeMedium, UnitNumber = "ODE-B050", Floor = 1, MonthlyPrice = 599m, Status = StorageUnitStatus.Maintenance, IsClimateControlled = false, IsDriveUp = false, CreatedAtUtc = DateTime.UtcNow.AddMonths(-2) }
-    };
+    ];
 
-    public static List<Reservation> Reservations { get; } = new();
+    public static List<Reservation> Reservations { get; } = [];
 
-    public static List<Rental> Rentals { get; } = new()
-    {
+    public static List<Rental> Rentals { get; } =
+    [
         new Rental
         {
             Id = Ids.ExistingRental,
@@ -193,54 +158,17 @@ public static class MockDatabase
             Status = RentalStatus.Active,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-15)
         }
-    };
+    ];
 
-    public static List<Invoice> Invoices { get; } = new()
-    {
-        new Invoice
-        {
-            Id = Ids.ExistingInvoice,
-            RentalId = Ids.ExistingRental,
-            UserId = Ids.UserAnna,
-            InvoiceNumber = "INV-DEMO-001",
-            Amount = 699m,
-            DueDateUtc = DateTime.UtcNow.Date.AddDays(15),
-            Status = InvoiceStatus.Paid,
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-15)
-        }
-    };
+    public static List<Invoice> Invoices { get; } = [];
 
-    public static List<Payment> Payments { get; } = new()
-    {
-        new Payment
-        {
-            Id = Ids.ExistingPayment,
-            RentalId = Ids.ExistingRental,
-            UserId = Ids.UserAnna,
-            InvoiceId = Ids.ExistingInvoice,
-            Amount = 699m,
-            PaymentMethod = PaymentMethod.Card,
-            Status = PaymentStatus.Paid,
-            PaymentDateUtc = DateTime.UtcNow.AddDays(-15),
-            TransactionReference = "MOCK-DEMO-PAID-001",
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-15)
-        }
-    };
+    public static List<Payment> Payments { get; } = [];
 
-    public static List<AccessCode> AccessCodes { get; } = new()
-    {
-        new AccessCode
-        {
-            Id = Ids.ExistingAccessCode,
-            RentalId = Ids.ExistingRental,
-            Code = "123456",
-            IsActive = true,
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-15)
-        }
-    };
 
-    public static List<SupportRequest> SupportRequests { get; } = new()
-    {
+    public static List<AccessCode> AccessCodes { get; } = [];
+
+    public static List<SupportRequest> SupportRequests { get; } =
+    [
         new SupportRequest
         {
             Id = Ids.ExistingSupportRequest,
@@ -251,5 +179,5 @@ public static class MockDatabase
             Status = SupportRequestStatus.Open,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-2)
         }
-    };
+    ];
 }
