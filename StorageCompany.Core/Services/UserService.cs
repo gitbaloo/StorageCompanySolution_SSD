@@ -6,21 +6,22 @@ using StorageCompany.Core.Validators;
 
 namespace StorageCompany.Core.Services;
 
-public class UserService : IUserService
+public class UserService(IUserRepository users, IEncryptionService encryptionService) : IUserService
 {
-    private readonly IUserRepository _users;
+    private readonly IUserRepository _users = users;
+    private readonly IEncryptionService _encryptionService = encryptionService;
 
-    public UserService(IUserRepository users)
+    public async Task<IReadOnlyList<User>> GetAllAsync()
     {
-        _users = users;
+        var users = await _users.GetAllAsync();
+        return [.. users.Select(DecryptUser)];
     }
-
-    public Task<IReadOnlyList<User>> GetAllAsync() => _users.GetAllAsync();
 
     public async Task<User> GetByIdAsync(Guid id)
     {
-        var customer = await _users.GetByIdAsync(id);
-        return customer ?? throw new NotFoundException($"User '{id}' was not found.");
+        var customer = await _users.GetByIdAsync(id) ?? throw new NotFoundException($"User '{id}' was not found.");
+
+        return DecryptUser(customer);
     }
 
     public async Task<User> CreateAsync(string firstName, string lastName, string email, string phoneNumber, string password)
@@ -37,17 +38,18 @@ public class UserService : IUserService
         var customer = new User
         {
             Id = Guid.NewGuid(),
-            FirstName = firstName.Trim(),
-            LastName = lastName.Trim(),
+            FirstName = _encryptionService.Encrypt(firstName.Trim()),
+            LastName = _encryptionService.Encrypt(lastName.Trim()),
             Email = email.Trim().ToLowerInvariant(),
-            PhoneNumber = phoneNumber.Trim(),
+            PhoneNumber = _encryptionService.Encrypt(phoneNumber.Trim()),
             PasswordHash = $"MOCK_HASH::{password.Length}::{Guid.NewGuid():N}",
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         };
 
         await _users.AddAsync(customer);
-        return customer;
+
+        return DecryptUser(customer);
     }
 
     public async Task<User> UpdateAsync(Guid id, string firstName, string lastName, string phoneNumber, bool isActive)
@@ -57,12 +59,22 @@ public class UserService : IUserService
         Guard.AgainstBlank(firstName, nameof(firstName));
         Guard.AgainstBlank(lastName, nameof(lastName));
 
-        customer.FirstName = firstName.Trim();
-        customer.LastName = lastName.Trim();
-        customer.PhoneNumber = phoneNumber.Trim();
+        customer.FirstName = _encryptionService.Encrypt(firstName.Trim());
+        customer.LastName = _encryptionService.Encrypt(lastName.Trim());
+        customer.PhoneNumber = _encryptionService.Encrypt(phoneNumber.Trim());
         customer.IsActive = isActive;
 
         await _users.UpdateAsync(customer);
-        return customer;
+
+        return DecryptUser(customer);
+    }
+
+    private User DecryptUser(User user)
+    {
+        user.FirstName = _encryptionService.Decrypt(user.FirstName);
+        user.LastName = _encryptionService.Decrypt(user.LastName);
+        user.PhoneNumber = _encryptionService.Decrypt(user.PhoneNumber);
+
+        return user;
     }
 }
