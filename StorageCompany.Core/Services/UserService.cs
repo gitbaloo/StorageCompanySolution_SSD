@@ -21,7 +21,7 @@ public class UserService(IUserRepository users, IEncryptionService encryptionSer
     {
         var customer = await _users.GetByIdAsync(id) ?? throw new NotFoundException($"User '{id}' was not found.");
 
-        return DecryptUser(customer);;
+        return DecryptUser(customer);
     }
 
     public async Task<User> CreateAsync(string firstName, string lastName, string email, string phoneNumber, string password)
