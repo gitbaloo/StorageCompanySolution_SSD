@@ -1,6 +1,4 @@
 using System.Text.Json.Serialization;
-using NSwag;
-using NSwag.Generation.Processors.Security;
 using Scalar.AspNetCore;
 using StorageCompany.Api.Middleware;
 using StorageCompany.Core;
@@ -8,6 +6,7 @@ using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Interfaces.Services;
 using StorageCompany.Core.Services;
 using StorageCompany.Infrastructure.Repositories;
+using StorageCompany.Infrastructure.Data;
 
 
 namespace StorageCompany.Api;
@@ -17,7 +16,7 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        
+
         builder.Services
             .AddOptions<AppOptions>()
             .Bind(builder.Configuration.GetSection("AppOptions"))
@@ -70,8 +69,15 @@ public class Program
         builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
         builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
         builder.Services.AddScoped<ISecurityService, SecurityService>();
+        builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 
         var app = builder.Build();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var encryption = scope.ServiceProvider.GetRequiredService<IEncryptionService>();
+            SeedData.Initialize(encryption);
+        }
 
         app.UseMiddleware<ErrorHandlingMiddleware>();
 

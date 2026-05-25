@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using StorageCompany.Core.Entities;
 using StorageCompany.Core.Enums;
 using StorageCompany.Core.Exceptions;
@@ -7,24 +8,18 @@ using StorageCompany.Core.Validators;
 
 namespace StorageCompany.Core.Services;
 
-public class PaymentService : IPaymentService
+public class PaymentService(IRentalRepository rentals, IPaymentRepository payments, IInvoiceRepository invoices, IEncryptionService encryptionService) : IPaymentService
 {
-    private readonly IRentalRepository _rentals;
-    private readonly IPaymentRepository _payments;
-    private readonly IInvoiceRepository _invoices;
-
-    public PaymentService(IRentalRepository rentals, IPaymentRepository payments, IInvoiceRepository invoices)
-    {
-        _rentals = rentals;
-        _payments = payments;
-        _invoices = invoices;
-    }
-
+    private readonly IRentalRepository _rentals = rentals;
+    private readonly IPaymentRepository _payments = payments;
+    private readonly IInvoiceRepository _invoices = invoices;
+    private readonly IEncryptionService _encryptionService = encryptionService;
 
     public async Task<Payment> GetByIdAsync(Guid id)
     {
-        var payment = await _payments.GetByIdAsync(id);
-        return payment ?? throw new NotFoundException($"Payment '{id}' was not found.");
+        var payment = await _payments.GetByIdAsync(id) ?? throw new NotFoundException($"Payment '{id}' was not found.");
+        payment.TransactionReference = _encryptionService.Decrypt(payment.TransactionReference);
+        return payment;
     }
 
     public async Task<Payment> CreateMockPaymentAsync(Guid rentalId, decimal amount, PaymentMethod paymentMethod, Guid? invoiceId = null)
@@ -58,7 +53,7 @@ public class PaymentService : IPaymentService
             PaymentMethod = paymentMethod,
             Status = PaymentStatus.Paid,
             PaymentDateUtc = DateTime.UtcNow,
-            TransactionReference = $"MOCK-{DateTime.UtcNow:yyyyMMddHHmmss}-{Random.Shared.Next(1000, 9999)}",
+            TransactionReference = _encryptionService.Encrypt($"MOCK-{DateTime.UtcNow:yyyyMMddHHmmss}-{RandomNumberGenerator.GetInt32(1000, 9999)}"),
             CreatedAtUtc = DateTime.UtcNow
         };
 
@@ -69,16 +64,19 @@ public class PaymentService : IPaymentService
         }
 
         await _payments.AddAsync(payment);
+        payment.TransactionReference = _encryptionService.Decrypt(payment.TransactionReference);
         return payment;
     }
 
-    public Task<IReadOnlyList<Payment>> GetByCustomerIdAsync(Guid customerId)
+    public async Task<IReadOnlyList<Payment>> GetByCustomerIdAsync(Guid customerId)
     {
-        return _payments.GetByCustomerIdAsync(customerId);
+        var payments = await _payments.GetByCustomerIdAsync(customerId);
+        return [.. payments.Select(p => { p.TransactionReference = _encryptionService.Decrypt(p.TransactionReference); return p; })];
     }
 
-    public Task<IReadOnlyList<Payment>> GetByRentalIdAsync(Guid rentalId)
+    public async Task<IReadOnlyList<Payment>> GetByRentalIdAsync(Guid rentalId)
     {
-        return _payments.GetByRentalIdAsync(rentalId);
+        var payments = await _payments.GetByRentalIdAsync(rentalId);
+        return [.. payments.Select(p => { p.TransactionReference = _encryptionService.Decrypt(p.TransactionReference); return p; })];
     }
 }

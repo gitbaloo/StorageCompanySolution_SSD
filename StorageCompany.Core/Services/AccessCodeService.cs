@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using StorageCompany.Core.Entities;
 using StorageCompany.Core.Exceptions;
 using StorageCompany.Core.Interfaces.Repositories;
@@ -5,16 +6,11 @@ using StorageCompany.Core.Interfaces.Services;
 
 namespace StorageCompany.Core.Services;
 
-public class AccessCodeService : IAccessCodeService
+public class AccessCodeService(IAccessCodeRepository accessCodes, IRentalRepository rentals, IEncryptionService encryptionService) : IAccessCodeService
 {
-    private readonly IAccessCodeRepository _accessCodes;
-    private readonly IRentalRepository _rentals;
-
-    public AccessCodeService(IAccessCodeRepository accessCodes, IRentalRepository rentals)
-    {
-        _accessCodes = accessCodes;
-        _rentals = rentals;
-    }
+    private readonly IAccessCodeRepository _accessCodes = accessCodes;
+    private readonly IRentalRepository _rentals = rentals;
+    private readonly IEncryptionService _encryptionService = encryptionService;
 
     public async Task<AccessCode> GenerateForRentalAsync(Guid rentalId)
     {
@@ -23,25 +19,30 @@ public class AccessCodeService : IAccessCodeService
 
         var existing = await _accessCodes.GetActiveByRentalIdAsync(rental.Id);
         if (existing is not null)
+        {
+            existing.Code = _encryptionService.Decrypt(existing.Code);
             return existing;
+        }
 
         var code = new AccessCode
         {
             Id = Guid.NewGuid(),
             RentalId = rental.Id,
-            Code = Random.Shared.Next(100000, 999999).ToString(),
+            Code = _encryptionService.Encrypt(RandomNumberGenerator.GetInt32(100000, 999999).ToString()),
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow
         };
-
+        
         await _accessCodes.AddAsync(code);
+        code.Code = _encryptionService.Decrypt(code.Code);
         return code;
     }
 
     public async Task<AccessCode> GetActiveByRentalIdAsync(Guid rentalId)
     {
-        var code = await _accessCodes.GetActiveByRentalIdAsync(rentalId);
-        return code ?? throw new NotFoundException($"No active access code was found for rental '{rentalId}'.");
+        var code = await _accessCodes.GetActiveByRentalIdAsync(rentalId) ?? throw new NotFoundException($"No active access code was found for rental '{rentalId}'.");
+        code.Code = _encryptionService.Decrypt(code.Code);
+        return code;
     }
 
     public async Task DeactivateByRentalIdAsync(Guid rentalId)
