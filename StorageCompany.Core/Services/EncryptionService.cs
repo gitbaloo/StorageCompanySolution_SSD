@@ -5,9 +5,15 @@ using System.Security.Cryptography;
 
 namespace StorageCompany.Core.Services;
 
+
+/// <summary>
+/// IOptions instead of IOptionsMonitor because if encryption key gets changed during runtime all encrypted data would become unreadable.
+/// IOptions makes the contract clear. The encryption key is fixed at startup and can only be changed after a restart.
+/// </summary>
+/// <param name="options"></param>
 public class EncryptionService(IOptions<AppOptions> options) : IEncryptionService
 {
-    private readonly byte[] _key = HKDF.DeriveKey(
+    private readonly byte[] _encryptionKey = HKDF.DeriveKey(
             HashAlgorithmName.SHA256,                                       // SHA256 matches the modern standard 32-byte AES-256 key
             Encoding.UTF8.GetBytes(options.Value.EncryptionKey),            // Conversion from string to byte array
             outputLength: 32,
@@ -17,7 +23,7 @@ public class EncryptionService(IOptions<AppOptions> options) : IEncryptionServic
     public string Encrypt(string plainText)
     {
         // Load Aes-Gcm with the encryption key and the tag size
-        using var aesGcm = new AesGcm(_key, 16);
+        using var aesGcm = new AesGcm(_encryptionKey, 16);
 
         // Create the 3 parts that make up the cipher text and convert the plain text string to a byte array
         var nonce = RandomNumberGenerator.GetBytes(12);
@@ -36,7 +42,7 @@ public class EncryptionService(IOptions<AppOptions> options) : IEncryptionServic
     public string Decrypt(string encryptedPayload)
     {
         // Load Aes-Gcm with the encryption key and the tag size
-        using var aesGcm = new AesGcm(_key, 16);
+        using var aesGcm = new AesGcm(_encryptionKey, 16);
 
         // Convert the base64 string back into byte array
         var encryptedPayloadBytes = Convert.FromBase64String(encryptedPayload);
