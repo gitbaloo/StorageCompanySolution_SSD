@@ -8,7 +8,7 @@ public interface ISecurityService
         
         public void VerifyPasswordOrThrow(string password, string hashedPassword);
         
-        public string GenerateSalt();
+        public byte[] GenerateSalt();
         
         public string GenerateJwt(JwtClaims claims);
        

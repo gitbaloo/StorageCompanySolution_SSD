@@ -11,16 +11,24 @@ using StorageCompany.Core.Entities;
 using StorageCompany.Core.Enums;
 using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Interfaces.Services;
+using Konscious.Security.Cryptography;
 
 namespace StorageCompany.Core.Services;
 
 public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRepository repository) : ISecurityService
 {
+    // Argon2 configurations
+    private const int SaltSize = 16; // 16 Bytes
+    private const int HashSize = 32; // 32 Bytes
+    private const int Parallelism = 1; // CPU threads
+    private const int Iterations = 2; // Number of hash iterations
+    private const int MemorySize = 19456; // Kilobytes ~19 MB of Ram cost 
+        
     public async Task<AuthResponse> Login(AuthLoginRequest dto)
     {
         var user = await repository.GetByEmailAsync(dto.Email) ?? throw new ValidationException("Email Not Found");
         
-        VerifyPasswordOrThrow(dto.Password + user.PasswordSalt, user.PasswordHash);
+        VerifyPasswordOrThrow(dto.Password, user.PasswordHash);
 
         return new AuthResponse
         {
@@ -42,8 +50,7 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
             throw new ValidationException("User already Exists");
         }
         
-        var salt  = GenerateSalt();
-        var hash = HashPassword(dto.Password + salt);
+        var hash = HashPassword(dto.Password);
         var role = dto.Role == "admin" ? Constants.AdminRole : Constants.CustomerRole;
         
         var newUser = await repository.AddUser(new User
@@ -51,7 +58,6 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
             Id = Guid.NewGuid(),
             Email = dto.Email,
             PasswordHash = hash,
-            PasswordSalt = salt,
             Role = role
         });
 
@@ -67,29 +73,64 @@ public class SecurityService(IOptionsMonitor<AppOptions> optionsMonitor, IUserRe
         };
     }
     
-    /// <summary>
-    ///     Gives hex representation of SHA512 hash
-    /// </summary>
-    /// <param name="password"></param>
-    /// <returns></returns>
+  
+    // Hashes a plain-text password using Argon2id and returns a Base64 string
     public string HashPassword(string password)
     {
-        using var sha512 = SHA512.Create();
-        var bytes = Encoding.UTF8.GetBytes(password);
-        var hash = sha512.ComputeHash(bytes);
-        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        
+        var salt = GenerateSalt();
+        var passwordBytes = Encoding.UTF8.GetBytes(password);
+
+        // Configure Argon2id with the given parameters
+        var argon = new Argon2id(passwordBytes)
+        {
+            Salt = salt,
+            DegreeOfParallelism = Parallelism,
+            MemorySize = MemorySize,
+            Iterations = Iterations,
+        };
+        
+        var hash = argon.GetBytes(HashSize);
+
+        // Combines Salt + Hash into a single byte array
+        var combined = new byte[SaltSize + HashSize];
+        Buffer.BlockCopy(salt, 0, combined, 0, SaltSize);
+        Buffer.BlockCopy(hash, 0, combined, SaltSize, HashSize);
+        
+        return Convert.ToBase64String(combined);
     }
 
+    // Verifies a plain-text password against a stored one
     public void VerifyPasswordOrThrow(string password, string hashedPassword)
     {
-        if(HashPassword(password) != hashedPassword) {
-            throw new AuthenticationException("Invalid login");
+        var combinedBytes = Convert.FromBase64String(hashedPassword);
+        var salt = new byte[SaltSize];
+        var hash = new byte[HashSize];
+        
+        Buffer.BlockCopy(combinedBytes, 0, salt, 0, SaltSize);
+        Buffer.BlockCopy(combinedBytes, SaltSize, hash, 0, HashSize);
+
+        var passwordBytes = Encoding.UTF8.GetBytes(password);
+
+        var argon = new Argon2id(passwordBytes)
+        {
+            Salt = salt,
+            DegreeOfParallelism = Parallelism,
+            MemorySize = MemorySize,
+            Iterations = Iterations,
+        };
+        
+        var computedHash = argon.GetBytes(HashSize);
+
+        if (!computedHash.SequenceEqual(hash)) {
+            throw new AuthenticationException("Invalid Password");
         }
     }
-
-    public string GenerateSalt()
+    
+     // Generates a random number with the given size and used as a Salt
+    public byte[] GenerateSalt()
     {
-        return Guid.NewGuid().ToString();
+        return RandomNumberGenerator.GetBytes(SaltSize);
     }
 
     public string GenerateJwt(JwtClaims claims)
