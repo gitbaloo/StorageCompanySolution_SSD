@@ -69,6 +69,26 @@ You can also run it from the terminal:
 dotnet restore
 dotnet run --project StorageCompany.Api
 ```
+### Secrets
+
+#### Encryption key secret
+
+1. Generate a random key
+
+```bash
+openssl rand -base64 32
+```
+
+2. Set the secret
+
+```bash
+dotnet user-secrets set "AppOptions:EncryptionKey" "your-random-key-here"
+```
+Or
+
+```bash
+dotnet user-secrets set "AppOptions:EncryptionKey" "your-random-key-here" --project StorageCompany.Api
+```
 
 ## Useful seeded demo IDs
 
