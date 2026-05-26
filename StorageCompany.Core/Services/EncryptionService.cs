@@ -18,7 +18,7 @@ public class EncryptionService(IOptions<AppOptions> options) : IEncryptionServic
             Encoding.UTF8.GetBytes(options.Value.EncryptionKey),            // Conversion from string to byte array
             outputLength: 32,
             salt: null,                                                     // Salt is not needed when key is derived from a config secret
-            info: Encoding.UTF8.GetBytes("EntityEncryption-AES-GCM-Key"));  // This is a label to describe for what purposes this key is being used. This encryption service is tasked with the encryption/decryption of our entities saved in database.
+            info: Encoding.UTF8.GetBytes("Field-Level-Encryption-AES-GCM-Key"));  // This is a label to describe for what purposes this key is being used. This encryption service is tasked with the encryption/decryption of our entities saved in database.
 
     public string Encrypt(string plainText)
     {
