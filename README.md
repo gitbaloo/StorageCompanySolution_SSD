@@ -79,6 +79,11 @@ dotnet run --project StorageCompany.Api
 openssl rand -base64 32
 ```
 
+Or
+
+Create on https://randomkeygen.com/encryption-key
+Key Size: 256-bit (32 bytes) | Format: Base64 | IV: Don't include
+
 2. Set the secret
 
 ```bash
