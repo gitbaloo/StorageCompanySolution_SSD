@@ -5,12 +5,25 @@ using System.Security.Cryptography;
 
 namespace StorageCompany.Core.Services;
 
-public class EncryptionService(IOptionsMonitor<AppOptions> optionsMonitor) : IEncryptionService
+
+/// <summary>
+/// IOptions instead of IOptionsMonitor because if encryption key gets changed during runtime all encrypted data would become unreadable.
+/// IOptions makes the contract clear. The encryption key is fixed at startup and can only be changed after a restart.
+/// </summary>
+/// <param name="options"></param>
+public class EncryptionService(IOptions<AppOptions> options) : IEncryptionService
 {
+    private readonly byte[] _encryptionKey = HKDF.DeriveKey(
+            HashAlgorithmName.SHA256,                                       // SHA256 matches the modern standard 32-byte AES-256 key
+            Encoding.UTF8.GetBytes(options.Value.EncryptionKey),            // Conversion from string to byte array
+            outputLength: 32,
+            salt: null,                                                     // Salt is not needed when key is derived from a config secret
+            info: Encoding.UTF8.GetBytes("Field-Level-Encryption-AES-GCM-Key"));  // This is a label to describe for what purposes this key is being used. This encryption service is tasked with the encryption/decryption of our entities saved in database.
+
     public string Encrypt(string plainText)
     {
         // Load Aes-Gcm with the encryption key and the tag size
-        using var aesGcm = new AesGcm(GetEncryptionKey(), 16);
+        using var aesGcm = new AesGcm(_encryptionKey, 16);
 
         // Create the 3 parts that make up the cipher text and convert the plain text string to a byte array
         var nonce = RandomNumberGenerator.GetBytes(12);
@@ -29,7 +42,7 @@ public class EncryptionService(IOptionsMonitor<AppOptions> optionsMonitor) : IEn
     public string Decrypt(string encryptedPayload)
     {
         // Load Aes-Gcm with the encryption key and the tag size
-        using var aesGcm = new AesGcm(GetEncryptionKey(), 16);
+        using var aesGcm = new AesGcm(_encryptionKey, 16);
 
         // Convert the base64 string back into byte array
         var encryptedPayloadBytes = Convert.FromBase64String(encryptedPayload);
@@ -50,18 +63,4 @@ public class EncryptionService(IOptionsMonitor<AppOptions> optionsMonitor) : IEn
         return plainText;
     }
 
-    private byte[] GetEncryptionKey()
-    {
-        // Load the encryption key from AppOptions.cs
-        var encryptionKey = optionsMonitor.CurrentValue.EncryptionKey;
-        
-        // Loads the SHA256 that is used for hashing
-        using var sha256 = SHA256.Create();
-
-        // Encryption key is encoded from a string into a byte array which are then hashed and returned
-        var bytes = Encoding.UTF8.GetBytes(encryptionKey);
-        var hashedBytes = sha256.ComputeHash(bytes);
-
-        return hashedBytes;
-    }
 }

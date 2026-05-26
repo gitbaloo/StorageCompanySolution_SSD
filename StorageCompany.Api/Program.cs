@@ -77,7 +77,7 @@ public class Program
         builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
         builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
         builder.Services.AddScoped<ISecurityService, SecurityService>();
-        builder.Services.AddScoped<IEncryptionService, EncryptionService>();
+        builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 
         builder.Services.AddRateLimiter(options =>
         {
