@@ -49,29 +49,21 @@ StorageCompanySolution
     ├── api-endpoints.md
     └── database-schema.md
 ```
+## Before you run
 
-## How to run
+### Create `appsettings.Development.json`
 
-1. Unzip the folder.
-2. Open `StorageCompanySolution.sln` in Visual Studio 2026.
-3. Restore NuGet packages.
-4. Set `StorageCompany.Api` as the startup project.
-5. Run the API.
-6. Scalar should open automatically at:
+Create a file named `appsettings.Development.json` in the StorageCompany.Api folder with the following content:
 
-```text
-https://localhost:7042/scalar
+```json
+{
+  "AppOptions": {
+    "JwtSecret": "your-jwt-secret-here",
+  }
+}
 ```
 
-You can also run it from the terminal:
-
-```bash
-dotnet restore
-dotnet run --project StorageCompany.Api
-```
-### Secrets
-
-#### Encryption key secret
+### Encryption key secret
 
 1. Generate a random key
 
@@ -93,6 +85,26 @@ Or
 
 ```bash
 dotnet user-secrets set "AppOptions:EncryptionKey" "your-random-key-here" --project StorageCompany.Api
+```
+
+## How to run
+
+1. Unzip the folder.
+2. Open `StorageCompanySolution.sln` in Visual Studio 2026.
+3. Restore NuGet packages.
+4. Set `StorageCompany.Api` as the startup project.
+5. Run the API.
+6. Scalar should open automatically at:
+
+```text
+https://localhost:7042/scalar
+```
+
+You can also run it from the terminal:
+
+```bash
+dotnet restore
+dotnet run --project StorageCompany.Api
 ```
 
 ## Useful seeded demo IDs
