@@ -14,30 +14,33 @@ public static class PasswordPolicyValidator
 
     public static void Validate(string password, string role)
     {
-        if (string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrEmpty(password))
         {
             throw new ValidationException("Password is required.");
         }
 
-        var normalizedPassword = password.Trim();
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            throw new ValidationException("Password cannot contain only whitespace.");
+        }
 
         var minimumLength = IsAdminRole(role)
             ? AdminMinimumLength
             : NormalUserMinimumLength;
 
-        if (normalizedPassword.Length < minimumLength)
+        if (password.Length < minimumLength)
         {
             throw new ValidationException(
                 $"Password must be at least {minimumLength} characters long.");
         }
 
-        if (!ContainsSpecialCharacter(normalizedPassword))
+        if (!ContainsSpecialCharacter(password))
         {
             throw new ValidationException(
                 "Password must contain at least one special character.");
         }
 
-        if (IsCommonPassword(normalizedPassword))
+        if (IsCommonPassword(password))
         {
             throw new ValidationException(
                 "Password is too common. Choose a stronger password.");
